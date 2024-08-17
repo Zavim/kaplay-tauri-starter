@@ -7,11 +7,19 @@
     "start": "astro dev",
     "build": "astro check && astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "dev:desktop": "tauri dev",
+    "build:desktop": "tauri build",
+    "astro": "astro",
+    "tauri": "tauri"
   },
   "dependencies": {
-    "astro": "^4.12.2",
     "@astrojs/check": "^0.8.3",
+    "@tauri-apps/api": "^1.6.0",
+    "astro": "^4.12.2",
+    "kaplay": "^4000.0.0-alpha.1",
     "typescript": "^5.5.4"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^1.6.0"
   }
 }
