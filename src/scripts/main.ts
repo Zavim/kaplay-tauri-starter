@@ -7,6 +7,7 @@ import {
   ENEMY_BATTLE_SPEED,
   SCALE_FACTOR,
   BULLET_SPEED,
+  enemiesToSpawn,
 } from "./constants";
 import { makePlayer, setControls } from "./player";
 import { saveSystem } from "./save";
@@ -64,37 +65,9 @@ addEventListener("keydown", async (key) => {
 });
 
 k.scene("start", async () => {
-  makeBackround(k);
-
-  const map = k.add([
-    k.sprite("background"),
-    k.pos(0, 0),
-    k.scale(SCALE_FACTOR),
-  ]);
-
-  const clouds = map.add([
-    k.sprite("clouds"),
-    k.pos(),
-    {
-      speed: 5,
-    },
-  ]);
-
-  clouds.onUpdate(() => {
-    clouds.move(clouds.speed, 0);
-    if (clouds.pos.x > 700) {
-      clouds.pos.x = -500;
-    }
-  });
-
-  map.add([k.sprite("obstacles"), k.pos()]);
-
-  const player = k.add(makePlayer(k));
-  player.pos = k.vec2(k.center().x - 350, k.center().y + 56);
-
   const playButton = k.add([
     k.rect(200, 50, { radius: 3 }),
-    k.color(k.Color.fromHex("14638e")),
+    k.color(k.Color.fromHex("315C2B")),
     k.area(),
     k.anchor("center"),
     k.pos(k.center().x + 30, k.center().y + 60),
@@ -108,9 +81,16 @@ k.scene("start", async () => {
   ]);
 
   // playButton.onClick(() => goToGame(k));
-  playButton.onClick(() => k.go("bus"));
-  k.onKeyPress("space", () => k.go("bus"));
-  k.onGamepadButtonPress("south", () => k.go("bus"));
+  let enemiesDead = 0;
+  playButton.onClick(() =>
+    k.go("bus", { enemiesToSpawn: enemiesToSpawn, enemiesDead: enemiesDead })
+  );
+  k.onKeyPress("space", () =>
+    k.go("bus", { enemiesToSpawn: enemiesToSpawn, enemiesDead: enemiesDead })
+  );
+  k.onGamepadButtonPress("south", () =>
+    k.go("bus", { enemiesToSpawn: enemiesToSpawn, enemiesDead: enemiesDead })
+  );
 
   await saveSystem.load();
 
@@ -121,87 +101,11 @@ k.scene("start", async () => {
   }
 });
 
-k.scene("main", async () => {
-  makeBackround(k);
-
-  let score = 0;
-
-  const colliders = await (await fetch("./collidersData.json")).json();
-  const collidersData = colliders.data;
-
-  k.setGravity(2500);
-
-  const map = k.add([k.pos(0, -50), k.scale(SCALE_FACTOR)]);
-
-  map.add([k.sprite("background"), k.pos()]);
-
-  const clouds = map.add([k.sprite("clouds"), k.pos(), { speed: 5 }]);
-  clouds.onUpdate(() => {
-    clouds.move(clouds.speed, 0);
-    if (clouds.pos.x > 700) {
-      clouds.pos.x = -500;
-    }
-  });
-
-  const platforms = map.add([
-    k.sprite("obstacles"),
-    k.pos(),
-    k.area(),
-    { speed: 100 },
-  ]);
-
-  platforms.onUpdate(() => {
-    platforms.move(-platforms.speed, 0);
-    if (platforms.pos.x < -490) {
-      platforms.pos.x = 300; //put platforms far back
-      platforms.speed += 30; //progressively increase speed
-    }
-  });
-
-  k.loop(1, () => {
-    score += 1;
-  });
-
-  for (const collider of collidersData) {
-    platforms.add([
-      k.area({
-        shape: new k.Rect(k.vec2(0), collider.width, collider.height),
-      }),
-      k.body({ isStatic: true }),
-      k.pos(collider.x, collider.y),
-      "obstacle",
-    ]);
+k.scene("bus", async ({ enemiesToSpawn, enemiesDead }) => {
+  if (enemiesToSpawn) {
+    k.add([k.text(`GERMS LEFT: ${enemiesToSpawn - enemiesDead}`)]);
   }
 
-  k.add([
-    k.rect(k.width(), 50),
-    k.pos(0, -100),
-    k.area(),
-    k.fixed(),
-    "obstacle",
-  ]);
-
-  k.add([
-    k.rect(k.width(), 50),
-    k.pos(0, 1000),
-    k.area(),
-    k.fixed(),
-    "obstacle",
-  ]);
-
-  const player = k.add(makePlayer(k));
-  player.pos = k.vec2(600, 250);
-  setControls(k, player);
-  player.onCollide("obstacle", async () => {
-    if (player.isDead) return;
-    k.play("hurt");
-    platforms.speed = 0;
-    k.add(await makeScoreBox(k, k.center(), score));
-    player.isDead = true;
-  });
-});
-
-k.scene("bus", async () => {
   function late(t) {
     let timer = 0;
     return {
@@ -261,7 +165,7 @@ k.scene("bus", async () => {
     k.area(),
     k.z(2),
     k.scale(0.75),
-    { battles: 0, maxBattles: 3, active: false },
+    { battles: 0, maxBattles: 5, active: false },
   ]);
 
   cursor.onUpdate(() => {
@@ -284,9 +188,10 @@ k.scene("bus", async () => {
   //     cursor.battles += 1;
   //   }
   // });
+  enemiesToSpawn -= enemiesDead;
   function spawnEnemies() {
     k.wait(k.rand() * 2, () => {
-      if (k.get("enemy").length < 10) {
+      if (k.get("enemy").length < enemiesToSpawn) {
         addEnemy(k, k.vec2(k.width() + k.rand() * 20, k.rand(0, k.height())));
       }
     });
@@ -323,7 +228,13 @@ k.scene("bus", async () => {
 });
 
 k.scene("battle", ({ battles }) => {
-  k.add([k.text(`ROUNDS: ${battles}`)]);
+  let enemiesLeft = battles;
+  // k.add([k.text(`ROUNDS: ${battles}`)]);
+  k.camScale(k.vec2(1.2));
+
+  k.wait(1.5, () => {
+    player.invincible = false;
+  });
 
   const cursor = k.add([
     k.sprite("mark"),
@@ -339,39 +250,51 @@ k.scene("battle", ({ battles }) => {
     cursor.pos = k.mousePos();
   });
 
+  k.onUpdate(() => {
+    if (enemiesLeft <= 0) {
+      k.go("bus", { enemiesToSpawn: enemiesToSpawn, enemiesDead: battles });
+    }
+  });
   k.onMouseDown(() => {
     player.attacking = true;
     player.moveTo(cursor.pos, 400);
   });
   k.onMouseRelease(() => {
     player.attacking = false;
-    player.moveTo(cursor.pos, 400);
   });
 
   const player = k.add(makePlayer(k));
   player.pos = k.vec2(k.center());
   setControls(k, player);
 
-  player.onCollide("enemy", (enemy) => {
-    if (player.attacking === true) {
-      k.destroy(enemy);
+  player.onUpdate(async () => {
+    if (player.attacking) {
+      // player.color = k.rgb(k.rand(0, 255), k.rand(0, 255), k.rand(0, 255));
+      player.color = k.rgb(255, 255, 0);
     } else {
-      player.lives -= 1;
-      k.destroy(player);
-    }
-    if (player.lives < 0) {
-      k.go("end");
-    } else {
-      k.go("bus");
+      player.color = k.WHITE;
     }
   });
+
+  player.onCollideUpdate("enemy", (enemy) => {
+    if (player.attacking === true) {
+      k.destroy(enemy);
+      enemiesLeft -= 1;
+    }
+    if (player.attacking === false && player.invincible === false) {
+      player.lives -= 1;
+      k.destroy(player);
+      k.go("bus", { enemiesToSpawn: enemiesToSpawn, enemiesDead: 0 });
+    }
+    // if (player.lives < 0) {
+    //   k.go("end");
+    // } else {
+    // }
+  });
   player.onCollideEnd("bullet", () => {
-    player.lives -= 1;
-    k.destroy(player);
-    if (player.lives < 0) {
-      k.go("end");
-    } else {
-      k.go("bus");
+    if (player.invincible === false) {
+      k.destroy(player);
+      k.go("bus", { enemiesToSpawn: enemiesToSpawn, enemiesDead: 0 });
     }
   });
 

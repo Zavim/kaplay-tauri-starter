@@ -8,9 +8,12 @@ export function makePlayer(k: KAPLAYCtx) {
     k.body({ jumpForce: 600 }),
     k.pos(),
     k.scale(),
+    k.color(),
+    k.opacity(),
     {
       isDead: false,
       attacking: false,
+      invincible: true,
       speed: 600,
       lives: 3,
     },
