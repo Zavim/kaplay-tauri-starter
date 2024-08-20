@@ -10,6 +10,7 @@ export function makePlayer(k: KAPLAYCtx) {
     k.scale(),
     {
       isDead: false,
+      attacking: false,
       speed: 600,
       lives: 3,
     },

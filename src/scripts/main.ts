@@ -22,12 +22,28 @@ const k = kaplay({
   scale: 2,
 });
 
+// k.loadSprite("bean", "src/assets/bean.png");
+// k.loadSprite("ghosty", "src/assets/ghosty.png");
+// k.loadSprite("meat", "src/assets/meat.png");
+// k.loadSprite("grapes", "src/assets/grapes.png");
+// k.loadSprite("cake", "src/assets/cake.png");
+// k.loadSprite("mark", "src/assets/mark.png");
+// k.loadSprite("obstacles", "src/assets/obstacles.png");
+// k.loadSprite("background", "src/assets/background.png");
+// k.loadSprite("clouds", "src/assets/clouds.png");
+
+// k.loadSound("jump", "/assets/jump.wav");
+// k.loadSound("hurt", "/assets/hurt.wav");
+// k.loadSound("confirm", "/assets/confirm.wav");
+// k.loadSprite("bean", "src/assets/bean.png");
+
 k.loadSprite("bean", "/bean.png");
 k.loadSprite("ghosty", "/ghosty.png");
 k.loadSprite("meat", "/meat.png");
 k.loadSprite("grapes", "/grapes.png");
 k.loadSprite("cake", "/cake.png");
 k.loadSprite("mark", "/mark.png");
+k.loadSprite("spark", "/spark.png");
 k.loadSprite("obstacles", "/obstacles.png");
 k.loadSprite("background", "/background.png");
 k.loadSprite("clouds", "/clouds.png");
@@ -309,12 +325,40 @@ k.scene("bus", async () => {
 k.scene("battle", ({ battles }) => {
   k.add([k.text(`ROUNDS: ${battles}`)]);
 
+  const cursor = k.add([
+    k.sprite("mark"),
+    k.pos(k.center()),
+    k.anchor("center"),
+    k.area(),
+    k.z(2),
+    k.scale(0.75),
+    { battles: 0, maxBattles: 3, active: false },
+  ]);
+
+  cursor.onUpdate(() => {
+    cursor.pos = k.mousePos();
+  });
+
+  k.onMouseDown(() => {
+    player.attacking = true;
+    player.moveTo(cursor.pos, 400);
+  });
+  k.onMouseRelease(() => {
+    player.attacking = false;
+    player.moveTo(cursor.pos, 400);
+  });
+
   const player = k.add(makePlayer(k));
   player.pos = k.vec2(k.center());
   setControls(k, player);
-  player.onCollideEnd("enemy", () => {
-    player.lives -= 1;
-    k.destroy(player);
+
+  player.onCollide("enemy", (enemy) => {
+    if (player.attacking === true) {
+      k.destroy(enemy);
+    } else {
+      player.lives -= 1;
+      k.destroy(player);
+    }
     if (player.lives < 0) {
       k.go("end");
     } else {
