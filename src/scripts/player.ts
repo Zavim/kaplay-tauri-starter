@@ -11,6 +11,7 @@ export function makePlayer(k: KAPLAYCtx) {
     {
       isDead: false,
       speed: 600,
+      lives: 3,
     },
   ]);
   return bean;
@@ -28,6 +29,16 @@ export function setControls(k: KAPLAYCtx, player: GameObj) {
         player.direction = "right";
         player.flipX = false;
         player.move(player.speed, 0);
+        break;
+      case "up":
+        player.direction = "right";
+        player.flipX = false;
+        player.move(0, -player.speed);
+        break;
+      case "down":
+        player.direction = "right";
+        player.flipX = false;
+        player.move(0, player.speed);
         break;
       default:
     }
